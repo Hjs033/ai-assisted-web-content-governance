@@ -1,0 +1,25 @@
+content_id,title,last_updated,page_views,engagement_rate,word_count,completeness,duplicate_similarity,performance_score,content_type,strategic_importance
+CNT-001,Public Health Workforce Resources,2026-08-15,18200,0.082,1850,0.96,0.12,92,Resource Hub,High
+CNT-002,Public Health Funding Guide,2025-02-10,7600,0.041,2200,0.72,0.18,78,Guide,High
+CNT-003,Maternal Health Resources,2026-01-12,14300,0.076,3100,0.88,0.34,86,Resource Hub,High
+CNT-004,Emergency Preparedness Resources,2023-09-20,4100,0.029,1400,0.68,0.84,71,Resource Hub,High
+CNT-005,Rural Public Health,2024-11-04,5200,0.038,1700,0.81,0.22,73,Topic Page,High
+CNT-006,Health Equity Resources,2026-07-01,22100,0.091,2600,0.95,0.09,94,Resource Hub,High
+CNT-007,Public Health Workforce Report 2022,2022-06-15,900,0.012,4800,0.61,0.77,58,Report,Medium
+CNT-008,State Health Policy Resources,2025-12-03,9800,0.052,1950,0.84,0.28,82,Resource Hub,High
+CNT-009,About the Organization,2024-03-15,6800,0.018,1200,0.98,0.05,97,About,Critical
+CNT-010,Contact Us,2025-08-20,2400,0.012,650,0.99,0.03,96,Utility,Critical
+CNT-011,Leadership & Governance,2026-06-10,5100,0.031,1350,0.94,0.08,95,Organizational,Critical
+CNT-012,Strategic Plan 2024-2028,2024-01-10,3900,0.022,2900,0.91,0.06,90,Strategy,Critical
+CNT-013,Annual Report 2025,2026-02-28,7200,0.046,6200,0.94,0.04,88,Report,High
+CNT-014,Annual Report 2021,2021-12-15,1300,0.009,5800,0.86,0.05,89,Archived Report,Medium
+CNT-015,2026 Annual Meeting,2026-07-18,11200,0.084,1450,0.92,0.07,91,Event,High
+CNT-016,2024 Annual Meeting,2024-05-10,800,0.006,1250,0.88,0.04,86,Event Archive,Low
+CNT-017,Workforce Data Dashboard,2026-09-05,15600,0.103,980,0.97,0.1,96,Data Tool,High
+CNT-018,Public Health Data Definitions,2025-10-12,4700,0.027,3600,0.9,0.14,84,Reference,High
+CNT-019,Rural Health Funding Opportunities,2026-08-30,6300,0.061,2100,0.93,0.16,90,Guide,High
+CNT-020,Maternal Health Funding Opportunities,2026-08-22,5400,0.057,2050,0.92,0.78,87,Guide,High
+CNT-021,Public Health Workforce News,2026-09-10,18900,0.112,3400,0.95,0.11,93,News Hub,Medium
+CNT-022,COVID-19 Response Resources,2022-04-01,2100,0.018,4100,0.55,0.88,62,Resource Hub,High
+CNT-023,State Policy Brief: 2026 Legislative Priorities,2026-02-05,6800,0.071,1750,0.89,0.21,88,Policy Brief,Critical
+CNT-024,Staff Directory,2023-01-12,1100,0.008,900,0.74,0.02,72,Utility,High
