@@ -129,3 +129,25 @@ def test_all_observations_can_be_returned_together():
     result = analyze_content(content, assessment)
 
     assert len(result["observations"]) == 5
+
+
+def test_handles_unavailable_assessment_scores():
+    """Unavailable scores should trigger a human-review observation."""
+    content = {
+        "duplicate_similarity": 0.10,
+    }
+    assessment = {
+        "freshness": None,
+        "quality": None,
+        "performance": None,
+        "engagement": None,
+    }
+
+    result = analyze_content(content, assessment)
+
+    assert "summary" in result
+    assert "observations" in result
+    assert "prompt_version" in result
+    assert len(result["observations"]) == 1
+    assert "Human review is required" in result["summary"]
+    assert "scores could not be calculated" in result["observations"][0]

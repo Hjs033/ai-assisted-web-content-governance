@@ -11,9 +11,46 @@ CONTEXTUAL_RULES = {
 # Each function returns a score from 0–100.
 # ---------------------------------------------------------------------------
 
+def validate_update_date(last_updated):
+    """Validate a content update date.
+
+    Returns:
+        tuple: (is_valid, message)
+
+    A valid date must use YYYY-MM-DD format and must not be
+    in the future.
+    """
+    if not last_updated:
+        return False, "The last-updated date is missing."
+
+    try:
+        update_date = datetime.strptime(last_updated, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return (
+            False,
+            "The last-updated date must use YYYY-MM-DD format.",
+        )
+
+    if update_date > datetime.now().date():
+        return False, "The last-updated date cannot be in the future."
+
+    return True, ""
+
+
 def freshness_score(last_updated):
-    """Score content freshness based on days since last update."""
-    days = (datetime.now() - datetime.strptime(last_updated, "%Y-%m-%d")).days
+    """Score content freshness based on days since last update.
+
+    Raises:
+        ValueError: If the update date is missing, malformed,
+            or in the future.
+    """
+    is_valid, message = validate_update_date(last_updated)
+
+    if not is_valid:
+        raise ValueError(message)
+
+    update_date = datetime.strptime(last_updated, "%Y-%m-%d").date()
+    days = (datetime.now().date() - update_date).days
 
     if days <= 180:
         return 100
@@ -179,12 +216,31 @@ def assess_content(row):
     """
     Perform the deterministic content health assessment.
 
-    The assessment engine:
-    1. Calculates configured criterion scores.
-    2. Calculates the weighted health score.
-    3. Determines the preliminary recommendation.
-    4. Returns the assessment record used by the application.
+    Invalid update dates prevent scoring and require human review.
+    Valid dates proceed through the normal assessment process.
     """
+
+    is_valid, date_message = validate_update_date(row.get("last_updated"))
+
+    if not is_valid:
+        return {
+            "content_id": row["content_id"],
+            "title": row["title"],
+            "freshness": None,
+            "quality": None,
+            "performance": None,
+            "duplication": None,
+            "engagement": None,
+            "health_score": None,
+            "system_status": "Requires review",
+            "preliminary_recommendation": "Review",
+            "recommendation_rationale": (
+                f"Assessment could not be completed because {date_message} "
+                "A human reviewer must verify the update date before "
+                "a content health score can be assigned."
+            ),
+            "criteria_version": CRITERIA_VERSION,
+        }
 
     health_score, scores = calculate_health_score(row)
 

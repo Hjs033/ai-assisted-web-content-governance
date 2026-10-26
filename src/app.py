@@ -55,31 +55,65 @@ with st.sidebar:
         )
 
 
-tab1, tab2, tab3 = st.tabs(["Content Assessment", "Human Review", "Audit History"])
+tab1, tab2, tab3 = st.tabs(
+    ["Content Assessment", "Human Review", "Audit History"]
+)
 
 with tab1:
     st.subheader("Content Health Overview")
+
     assessments = [assess_content(row) for _, row in df.iterrows()]
     assessment_df = pd.DataFrame(assessments)
 
     c1, c2, c3, c4 = st.columns(4)
+
+    valid_health_scores = assessment_df["health_score"].dropna()
+    items_requiring_review = int(
+        (assessment_df["system_status"] != "Healthy").sum()
+    )
+
     c1.metric("Content Items", len(df))
-    c2.metric("Needs Review", int((assessment_df["system_status"] != "Healthy").sum()))
-    c3.metric("Average Health", f"{assessment_df['health_score'].mean():.0f}/100")
+    c2.metric("Needs Review", items_requiring_review)
+
+    if valid_health_scores.empty:
+        average_health = "N/A"
+    else:
+        average_health = f"{valid_health_scores.mean():.0f}/100"
+
+    c3.metric("Average Health", average_health)
     c4.metric("Criteria Version", CRITERIA_VERSION)
 
     display = assessment_df[
-        ["content_id", "title", "health_score", "system_status", "preliminary_recommendation"]
+        [
+            "content_id",
+            "title",
+            "health_score",
+            "system_status",
+            "preliminary_recommendation",
+        ]
     ].copy()
-    display.columns = ["ID", "Title", "Health", "Status", "Recommendation"]
+
+    display.columns = [
+        "ID",
+        "Title",
+        "Health",
+        "Status",
+        "Recommendation",
+    ]
+
     st.dataframe(display, width="stretch", hide_index=True)
 
-    selected_id = st.selectbox("Select a content item", df["content_id"].tolist())
+    selected_id = st.selectbox(
+        "Select a content item",
+        df["content_id"].tolist(),
+    )
+
     row = df[df["content_id"] == selected_id].iloc[0].to_dict()
     result = assess_content(row)
     ai = analyze_content(row, result)
 
     left, right = st.columns(2)
+
     with left:
         st.markdown("### Evidence")
         st.write(f"**Title:** {row['title']}")
@@ -88,49 +122,111 @@ with tab1:
         st.write(f"**Engagement rate:** {row['engagement_rate']:.1%}")
         st.write(f"**Word count:** {row['word_count']:,}")
         st.write(f"**Completeness:** {row['completeness']:.0%}")
-        st.write(f"**Duplicate similarity:** {row['duplicate_similarity']:.0%}")
+        st.write(
+            f"**Duplicate similarity:** {row['duplicate_similarity']:.0%}"
+        )
 
     with right:
         st.markdown("### Deterministic Assessment")
-        st.metric("Health score", f"{result['health_score']}/100")
+
+        if result["health_score"] is None:
+            st.metric("Health score", "N/A")
+            st.warning(
+                "A health score could not be calculated because the update "
+                "date is invalid. Verify the date before assessing this content."
+            )
+        else:
+            st.metric(
+                "Health score",
+                f"{result['health_score']}/100",
+            )
+
         st.write(f"**Status:** {result['system_status']}")
-        st.write(f"**Preliminary recommendation:** {result['preliminary_recommendation']}")
-        st.caption(f"**Why:** {result['recommendation_rationale']}")
-        for key in ["freshness", "quality", "performance", "duplication", "engagement"]:
-            st.progress(result[key] / 100, text=f"{key.title()}: {result[key]:.0f}/100")
-        st.caption(
-            f"Duplication score reflects content similarity: {row['duplicate_similarity']:.0%} similarity → "
-            f"{result['duplication']:.0f}/100 uniqueness score."
+        st.write(
+            f"**Preliminary recommendation:** "
+            f"{result['preliminary_recommendation']}"
         )
+        st.caption(f"**Why:** {result['recommendation_rationale']}")
+
+        score_keys = [
+            "freshness",
+            "quality",
+            "performance",
+            "duplication",
+            "engagement",
+        ]
+
+        if result["health_score"] is None:
+            st.info(
+                "Individual criterion scores are unavailable until the "
+                "update date has been verified."
+            )
+        else:
+            for key in score_keys:
+                st.progress(
+                    result[key] / 100,
+                    text=f"{key.title()}: {result[key]:.0f}/100",
+                )
+
+            st.caption(
+                f"Duplication score reflects content similarity: "
+                f"{row['duplicate_similarity']:.0%} similarity → "
+                f"{result['duplication']:.0f}/100 uniqueness score."
+            )
 
     st.markdown("### AI-Assisted Qualitative Analysis")
     st.info(ai["summary"])
+
     for observation in ai["observations"]:
         st.write("• " + observation)
+
     st.caption(
-        f"AI prompt version: {ai['prompt_version']} • AI is advisory; human review is required."
+        f"AI prompt version: {ai['prompt_version']} • "
+        "AI is advisory; human review is required."
     )
+
 
 with tab2:
     st.subheader("Human Review & Governance Decision")
+
     selected_id = st.selectbox(
-        "Content item for review", df["content_id"].tolist(), key="review_id"
+        "Content item for review",
+        df["content_id"].tolist(),
+        key="review_id",
     )
+
     row = df[df["content_id"] == selected_id].iloc[0].to_dict()
     result = assess_content(row)
     ai = analyze_content(row, result)
     previous = get_latest_review(selected_id)
 
     st.markdown(f"### Evidence summary — {row['title']}")
+
     e1, e2, e3 = st.columns(3)
-    e1.metric("Health", f"{result['health_score']}/100")
-    e2.metric("Freshness", f"{result['freshness']}/100")
-    e3.metric("Engagement", f"{result['engagement']}/100")
+
+    if result["health_score"] is None:
+        e1.metric("Health", "N/A")
+        e2.metric("Freshness", "N/A")
+        e3.metric("Engagement", "N/A")
+
+        st.warning(
+            "This content cannot receive a health score until its update "
+            "date is verified. Review the date and document your rationale "
+            "before making a final governance decision."
+        )
+    else:
+        e1.metric("Health", f"{result['health_score']}/100")
+        e2.metric("Freshness", f"{result['freshness']}/100")
+        e3.metric("Engagement", f"{result['engagement']}/100")
 
     st.markdown("#### 1. Your independent assessment")
-    st.caption("Make your initial assessment before considering the AI-assisted analysis.")
+    st.caption(
+        "Make your initial assessment before considering the AI-assisted analysis."
+    )
+
     prior_human = previous["human_assessment"] if previous else "Keep"
     human_options = ["Keep", "Review", "Update", "Consolidate", "Retire"]
+
     human_assessment = st.radio(
         "Initial governance assessment",
         human_options,
@@ -141,14 +237,23 @@ with tab2:
 
     st.markdown("#### 2. AI-assisted analysis")
     st.info(ai["summary"])
+
     for observation in ai["observations"]:
         st.write("• " + observation)
+
     st.caption(
-        f"AI prompt version: {ai['prompt_version']} • AI provides qualitative evidence; it does not make the final decision."
+        f"AI prompt version: {ai['prompt_version']} • "
+        "AI provides qualitative evidence; it does not make the final decision."
     )
 
     st.markdown("#### 3. Final governance decision")
-    prior_final = previous["final_decision"] if previous else result["preliminary_recommendation"]
+
+    prior_final = (
+        previous["final_decision"]
+        if previous
+        else result["preliminary_recommendation"]
+    )
+
     final_decision = st.selectbox(
         "Final decision",
         human_options,
@@ -157,6 +262,7 @@ with tab2:
     )
 
     prior_rationale = previous["rationale"] if previous else ""
+
     rationale = st.text_area(
         "Reviewer rationale (required)",
         value=prior_rationale,
@@ -166,8 +272,10 @@ with tab2:
 
     if previous:
         st.caption(
-            f"Most recent saved decision: {previous['final_decision']} on {previous['timestamp']}. "
-            "Saving again creates a new audit record rather than deleting the prior record."
+            f"Most recent saved decision: {previous['final_decision']} "
+            f"on {previous['timestamp']}. "
+            "Saving again creates a new audit record rather than deleting "
+            "the prior record."
         )
 
     if st.button("Save Human Decision", type="primary"):
@@ -184,13 +292,17 @@ with tab2:
             )
             st.success("Human decision recorded in the audit history.")
 
+
 with tab3:
     st.subheader("Audit & Version History")
+
     audit = get_audit_records()
+
     if audit.empty:
         st.info("No human decisions have been recorded yet.")
     else:
         st.dataframe(audit, width="stretch", hide_index=True)
         st.caption(
-            "Audit records preserve the system recommendation, human assessment, final decision, rationale, and configuration versions."
+            "Audit records preserve the system recommendation, human "
+            "assessment, final decision, rationale, and configuration versions."
         )

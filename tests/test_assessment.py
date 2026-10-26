@@ -10,6 +10,7 @@ from assessment import (
     assess_content,
     freshness_score,
     validate_criteria,
+    validate_update_date,
 )
 
 
@@ -153,3 +154,131 @@ def test_low_health_score_recommends_review():
     assert result["health_score"] < 60
     assert result["preliminary_recommendation"] == "Review"
     assert "overall health score" in result["recommendation_rationale"]
+
+
+def test_validate_update_date_accepts_valid_past_date():
+    """A valid past date should pass validation."""
+    is_valid, message = validate_update_date("2026-01-15")
+
+    assert is_valid is True
+    assert message == ""
+
+def test_validate_update_date_rejects_future_date():
+    """A future update date should be flagged."""
+    future_date = (
+        datetime.now().date() + timedelta(days=30)
+    ).strftime("%Y-%m-%d")
+
+    is_valid, message = validate_update_date(future_date)
+
+    assert is_valid is False
+    assert "future" in message.lower()
+
+def test_validate_update_date_rejects_missing_date():
+    """A missing update date should be flagged."""
+    is_valid, message = validate_update_date(None)
+
+    assert is_valid is False
+    assert "missing" in message.lower()
+
+def test_validate_update_date_rejects_malformed_date():
+    """A malformed update date should be flagged."""
+    is_valid, message = validate_update_date("not-a-date")
+
+    assert is_valid is False
+    assert "YYYY-MM-DD" in message
+
+def test_freshness_score_rejects_future_date():
+    """Future dates must not receive a freshness score."""
+    future_date = (
+        datetime.now().date() + timedelta(days=30)
+    ).strftime("%Y-%m-%d")
+
+    with pytest.raises(ValueError, match="future"):
+        freshness_score(future_date)
+
+def test_freshness_score_rejects_missing_date():
+    """Missing dates must not receive a freshness score."""
+    with pytest.raises(ValueError, match="missing"):
+        freshness_score(None)
+
+def test_freshness_score_rejects_malformed_date():
+    """Malformed dates must not receive a freshness score."""
+    with pytest.raises(ValueError, match="YYYY-MM-DD"):
+        freshness_score("not-a-date")
+
+
+def test_assess_content_flags_future_update_date_for_review():
+    """Future update dates should prevent scoring and require review."""
+    row = {
+        "content_id": "TEST-006",
+        "title": "Future-Dated Content",
+        "last_updated": (
+            datetime.now().date() + timedelta(days=30)
+        ).strftime("%Y-%m-%d"),
+        "page_views": 1000,
+        "engagement_rate": 0.05,
+        "word_count": 1000,
+        "completeness": 0.90,
+        "duplicate_similarity": 0.10,
+        "performance_score": 80,
+        "content_type": "Report",
+        "strategic_importance": "Standard",
+    }
+
+    result = assess_content(row)
+
+    assert result["health_score"] is None
+    assert result["freshness"] is None
+    assert result["system_status"] == "Requires review"
+    assert result["preliminary_recommendation"] == "Review"
+    assert "future" in result["recommendation_rationale"].lower()
+
+
+def test_assess_content_flags_missing_update_date_for_review():
+    """Missing update dates should prevent scoring and require review."""
+    row = {
+        "content_id": "TEST-007",
+        "title": "Missing-Date Content",
+        "last_updated": None,
+        "page_views": 1000,
+        "engagement_rate": 0.05,
+        "word_count": 1000,
+        "completeness": 0.90,
+        "duplicate_similarity": 0.10,
+        "performance_score": 80,
+        "content_type": "Report",
+        "strategic_importance": "Standard",
+    }
+
+    result = assess_content(row)
+
+    assert result["health_score"] is None
+    assert result["system_status"] == "Requires review"
+    assert result["preliminary_recommendation"] == "Review"
+    assert "missing" in result["recommendation_rationale"].lower()
+
+
+def test_assess_content_flags_malformed_update_date_for_review():
+    """Malformed update dates should prevent scoring and require review."""
+    row = {
+        "content_id": "TEST-008",
+        "title": "Malformed-Date Content",
+        "last_updated": "not-a-date",
+        "page_views": 1000,
+        "engagement_rate": 0.05,
+        "word_count": 1000,
+        "completeness": 0.90,
+        "duplicate_similarity": 0.10,
+        "performance_score": 80,
+        "content_type": "Report",
+        "strategic_importance": "Standard",
+    }
+
+    result = assess_content(row)
+
+    assert result["health_score"] is None
+    assert result["freshness"] is None
+    assert result["system_status"] == "Requires review"
+    assert result["preliminary_recommendation"] == "Review"
+    assert "YYYY-MM-DD" in result["recommendation_rationale"]
