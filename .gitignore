@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Local database
+*.db
+*.db-wal
+*.db-shm
+
+# Environment and secrets
+.env
+.env.*
+.streamlit/secrets.toml
+
+# OS files
+.DS_Store
+Thumbs.db
